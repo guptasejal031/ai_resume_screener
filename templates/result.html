@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Analysis Result</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+
+:root {
+    --primary: #00d4ff;
+    --secondary: #007bff;
+}
+
+body {
+    animation: fadeIn 0.8s ease-in-out;
+    background: linear-gradient(-45deg, #141e30, #243b55, #1f1c2c, #2c5364);
+    background-size: 400% 400%;
+    animation: gradientBG 10s ease infinite;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes gradientBG {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+h2 {
+    color: var(--primary);
+}
+
+.card {
+    background: rgba(255, 255, 255, 0.1) !important;
+    backdrop-filter: blur(15px);
+    border-radius: 20px !important;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white !important;
+    transition: 0.3s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+.table {
+    background: rgba(255,255,255,0.08);
+    backdrop-filter: blur(10px);
+    color: white;
+}
+
+.btn {
+    border-radius: 25px;
+    transition: 0.3s;
+}
+
+.btn:hover {
+    transform: scale(1.05);
+}
+
+.btn-primary {
+    background: linear-gradient(45deg, #00d4ff, #007bff);
+    border: none;
+}
+
+.progress-bar {
+    background: linear-gradient(45deg, #00d4ff, #007bff);
+}
+
+input, textarea {
+    border-radius: 15px !important;
+}
+
+</style>
+</head>
+
+<body class="bg-dark text-light">
+
+<div class="container mt-5">
+    <div class="card p-4 shadow-lg bg-light text-dark rounded-4">
+
+        <div class="text-center mb-3">
+            <img src="{{ url_for('static', filename='logo.png') }}" 
+            alt="SmartHire Logo" width="140">
+
+            <h2 class="mt-2" style="font-weight: bold;">
+                SmartHire
+            </h2>
+
+            <p style="font-size: 14px; color: #ccc;">
+                Intelligent Talent Screening System
+            </p>
+        </div>
+
+        {% if results %}
+        <div class="alert alert-success text-center mb-4">
+            🥇 <strong>Top Candidate:</strong> {{ results[0].filename }} 
+            with Score {{ results[0].score }}%
+        </div>
+        {% endif %}
+
+        <!-- 🔥 TOP RECOMMENDED -->
+        <div class="alert alert-info text-center mb-4">
+            <h5>🤖 Top Recommended Candidates</h5>
+
+            {% for c in top_candidates %}
+                <p>
+                    <strong>{{ loop.index }}.</strong> 
+                    {{ c.filename }} ({{ c.score }}%)
+                </p>
+            {% endfor %}
+        </div>
+
+        <!-- TABLE VIEW -->
+        <table class="table table-bordered table-hover text-center">
+            <thead>
+                <tr>
+                    <th>Rank</th>
+                    <th>Name</th>
+                    <th>Filename</th>
+                    <th>Score</th>
+                    <th>Bert Score</th>
+                    <th>Decision</th>
+                    <th>Predicted Role</th>
+                    <th>Matched Skills</th>
+                    <th>Missing Skills</th>
+                    <th>AI Insight</th>
+                    <th>Download</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for r in results %}
+                <tr {% if loop.index == 1 %} class="table-success" {% endif %}>
+                    
+                    <td>
+                        {% if loop.index == 1 %}
+                            🥇
+                        {% elif loop.index == 2 %}
+                            🥈
+                        {% elif loop.index == 3 %}
+                            🥉
+                        {% else %}
+                            {{ loop.index }}
+                        {% endif %}
+                    </td>
+                    <td>{{ r.name }}</td>
+                    <td>{{ r.filename }}</td>
+
+                    <td>
+                        <div class="progress" style="height: 20px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated"
+                                 style="width: {{ r.score }}%;">
+                                {{ r.score }}%
+                            </div>
+                        </div>
+                    </td>
+
+                    <td>
+                        {% if r.bert_score >= 70 %}
+                            <span class="badge bg-success">{{ r.bert_score }}%</span>
+                        {% elif r.bert_score >= 50 %}
+                            <span class="badge bg-warning text-dark">{{ r.bert_score }}%</span>
+                        {% else %}
+                            <span class="badge bg-danger">{{ r.bert_score }}%</span>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {% if r.score >= 70 %}
+                            <span class="badge bg-success">Highly Eligible</span>
+                        {% elif r.score >= 50 %}
+                            <span class="badge bg-warning text-dark">Moderate</span>
+                        {% else %}
+                            <span class="badge bg-danger">Not Eligible</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge bg-info text-dark">
+                            {{ r.predicted_role }}
+                        </span>
+                    </td>
+
+                    <td>{{ r.matched_skills | join(', ') }}</td>
+                    <td class="text-danger">{{ r.missing_skills | join(', ') }}</td>
+
+                    <td>
+                        <small>
+                            <strong>📊 Explanation:</strong><br>
+                            Skills: {{ r.explanation.skill_match }} <br>
+                            Experience: {{ r.explanation.experience_match }} <br>
+                            TF-IDF: {{ r.explanation.tfidf_score }} <br>
+                            BERT: {{ r.explanation.bert_score }} <br><br>
+
+                            <strong>💡 Suggestion:</strong><br>
+                            {{ r.suggestion }}
+                        </small>
+                    </td>
+                    <td>
+                        <a href="/download/{{ r.filename }}" 
+                            class="btn btn-sm btn-success">
+                            Download
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <hr>
+
+        <h4 class="text-center mt-4">📊 Candidate Score Comparison</h4>
+
+        <canvas id="scoreChart" height="100"></canvas>
+
+        <div class="text-center mt-4">
+            <a href="/" class="btn btn-primary px-4">Analyze More Resumes</a>
+            <button onclick="history.back()" class="btn btn-secondary px-4 mt-2">
+            ⬅️ Go Back
+        </button>
+        </div>
+
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+const ctx = document.getElementById('scoreChart').getContext('2d');
+
+new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: {{ usernames | tojson }},
+        datasets: [{
+            label: 'Resume Score (%)',
+            data: {{ scores | tojson }},
+            borderWidth: 1
+        }]
+    },
+    options: {
+        scales: {
+            y: {
+                beginAtZero: true,
+                max: 100
+            }
+        }
+    }
+});
+</script>
+
+</body>
+</html>
